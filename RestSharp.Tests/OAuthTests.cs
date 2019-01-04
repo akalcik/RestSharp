@@ -55,7 +55,7 @@ namespace RestSharp.Tests
         [TestCase("AB", "JJgraAxzpO2Q6wiC3blM4eiQeA9WmkALaZI8yGRH4qM%3D", "CD!")]
         public void HmacSha256_Hashes_Correctly(string value, string expected, string consumerSecret)
         {
-            string actual = OAuthTools.GetSignature(OAuthSignatureMethod.HmacSha256, value, consumerSecret);
+            string actual = OAuthTools.GetSignature(OAuthSignatureMethod.HmacSha256, value, consumerSecret, null);
 
             Assert.AreEqual(expected, actual);
         }
@@ -64,7 +64,7 @@ namespace RestSharp.Tests
         public void HmacSha256_Does_Not_Accept_Nulls()
         {
             string consumerSecret = "12345678";
-            Assert.That(() => OAuthTools.GetSignature(OAuthSignatureMethod.HmacSha256, null, consumerSecret),
+            Assert.That(() => OAuthTools.GetSignature(OAuthSignatureMethod.HmacSha256, null, consumerSecret, null),
                 Throws.TypeOf<ArgumentNullException>());
         }
 
@@ -82,13 +82,12 @@ namespace RestSharp.Tests
 
             using (var crypto = new RSACryptoServiceProvider(keySize) {PersistKeyInCsp = false})
             {
-                string privateKey = crypto.ToXmlString(true);
-
                 string signature = OAuthTools.GetSignature(
                     OAuthSignatureMethod.RsaSha1,
                     OAuthSignatureTreatment.Unescaped,
                     value,
-                    privateKey);
+                    "",
+                    (AsymmetricAlgorithm)crypto);
 
                 byte[] signatureBytes = Convert.FromBase64String(signature);
 

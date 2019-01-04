@@ -242,11 +242,12 @@ namespace RestSharp.Authenticators.OAuth
         /// <param name="signatureMethod">The hashing method</param>
         /// <param name="signatureBase">The signature base</param>
         /// <param name="consumerSecret">The consumer key</param>
+        /// <param name="signingKey">The key used for RsaSha1 signing.</param>
         /// <returns></returns>
         public static string GetSignature(OAuthSignatureMethod signatureMethod, string signatureBase,
-            string consumerSecret)
+            string consumerSecret, AsymmetricAlgorithm signingKey)
         {
-            return GetSignature(signatureMethod, OAuthSignatureTreatment.Escaped, signatureBase, consumerSecret, null);
+            return GetSignature(signatureMethod, OAuthSignatureTreatment.Escaped, signatureBase, consumerSecret, null, signingKey);
         }
 
         /// <summary>
@@ -257,12 +258,13 @@ namespace RestSharp.Authenticators.OAuth
         /// <param name="signatureTreatment">The treatment to use on a signature value</param>
         /// <param name="signatureBase">The signature base</param>
         /// <param name="consumerSecret">The consumer key</param>
+        /// <param name="signingKey">The key used for RsaSha1 signing.</param>
         /// <returns></returns>
         public static string GetSignature(OAuthSignatureMethod signatureMethod,
             OAuthSignatureTreatment signatureTreatment,
-            string signatureBase, string consumerSecret)
+            string signatureBase, string consumerSecret, AsymmetricAlgorithm signingKey)
         {
-            return GetSignature(signatureMethod, signatureTreatment, signatureBase, consumerSecret, null);
+            return GetSignature(signatureMethod, signatureTreatment, signatureBase, consumerSecret, null, signingKey);
         }
 
         /// <summary>
@@ -272,12 +274,13 @@ namespace RestSharp.Authenticators.OAuth
         /// <param name="signatureBase">The signature base</param>
         /// <param name="consumerSecret">The consumer secret</param>
         /// <param name="tokenSecret">The token secret</param>
+        /// <param name="signingKey">The key used for RsaSha1 signing.</param>
         /// <returns></returns>
         public static string GetSignature(OAuthSignatureMethod signatureMethod, string signatureBase,
             string consumerSecret,
-            string tokenSecret)
+            string tokenSecret, AsymmetricAlgorithm signingKey)
         {
-            return GetSignature(signatureMethod, OAuthSignatureTreatment.Escaped, consumerSecret, tokenSecret);
+            return GetSignature(signatureMethod, OAuthSignatureTreatment.Escaped, consumerSecret, tokenSecret, signingKey);
         }
 
         /// <summary>
@@ -288,15 +291,15 @@ namespace RestSharp.Authenticators.OAuth
         /// <param name="signatureBase">The signature base</param>
         /// <param name="consumerSecret">The consumer secret</param>
         /// <param name="tokenSecret">The token secret</param>
+        /// <param name="signingKey">The key used for RsaSha1 signing.</param>
         /// <returns></returns>
         public static string GetSignature(OAuthSignatureMethod signatureMethod,
             OAuthSignatureTreatment signatureTreatment,
-            string signatureBase, string consumerSecret, string tokenSecret)
+            string signatureBase, string consumerSecret, string tokenSecret, AsymmetricAlgorithm signingKey)
         {
             if (tokenSecret.IsNullOrBlank())
                 tokenSecret = string.Empty;
 
-            var unencodedConsumerSecret = consumerSecret;
             consumerSecret = Uri.EscapeDataString(consumerSecret);
             tokenSecret = Uri.EscapeDataString(tokenSecret);
 
@@ -326,15 +329,15 @@ namespace RestSharp.Authenticators.OAuth
 
                 case OAuthSignatureMethod.RsaSha1:
                 {
-                    using (var provider = new RSACryptoServiceProvider { PersistKeyInCsp = false })
-                    {
-                        provider.FromXmlString2(unencodedConsumerSecret);
+                    if (signingKey == null) { throw new Exception("A signing key is required for RSA-SHA1 signing."); }
 
-                        SHA1Managed hasher = new SHA1Managed();
-                        byte[] hash = hasher.ComputeHash(encoding.GetBytes(signatureBase));
+                    SHA1Managed hasher = new SHA1Managed();
+                    byte[] hash = hasher.ComputeHash(encoding.GetBytes(signatureBase));
 
-                        signature = Convert.ToBase64String(provider.SignHash(hash, CryptoConfig.MapNameToOID("SHA1")));
-                    }
+                    var formatter = new RSAPKCS1SignatureFormatter(signingKey);
+                    formatter.SetHashAlgorithm("SHA1");
+                    signature = Convert.ToBase64String(formatter.CreateSignature(hash));
+
                     break;
                 }
 

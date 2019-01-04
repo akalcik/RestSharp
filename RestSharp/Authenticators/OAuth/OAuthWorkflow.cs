@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 using System.Web;
 using RestSharp.Authenticators.OAuth.Extensions;
 
@@ -42,6 +43,8 @@ namespace RestSharp.Authenticators.OAuth
 
         public virtual string AuthorizationUrl { get; set; }
 
+        public virtual AsymmetricAlgorithm SigningKey { get; set; }
+
         /// <summary>
         ///     Generates a <see cref="OAuthWebQueryInfo" /> instance to pass to an
         ///     <see cref="IAuthenticator" /> for the purpose of requesting an
@@ -75,7 +78,7 @@ namespace RestSharp.Authenticators.OAuth
             AddAuthParameters(parameters, timestamp, nonce);
 
             var signatureBase = OAuthTools.ConcatenateRequestElements(method, RequestTokenUrl, parameters);
-            var signature = OAuthTools.GetSignature(SignatureMethod, SignatureTreatment, signatureBase, ConsumerSecret);
+            var signature = OAuthTools.GetSignature(SignatureMethod, SignatureTreatment, signatureBase, ConsumerSecret, SigningKey);
 
             var info = new OAuthWebQueryInfo
             {
@@ -129,7 +132,7 @@ namespace RestSharp.Authenticators.OAuth
 
             var signatureBase = OAuthTools.ConcatenateRequestElements(method, uri.ToString(), parameters);
             var signature = OAuthTools.GetSignature(SignatureMethod, SignatureTreatment, signatureBase,
-                ConsumerSecret, TokenSecret);
+                ConsumerSecret, TokenSecret, SigningKey);
 
             var info = new OAuthWebQueryInfo
             {
@@ -175,7 +178,7 @@ namespace RestSharp.Authenticators.OAuth
 
             var signatureBase = OAuthTools.ConcatenateRequestElements(method, uri.ToString(), parameters);
             var signature = OAuthTools.GetSignature(SignatureMethod, SignatureTreatment, signatureBase,
-                ConsumerSecret);
+                ConsumerSecret, SigningKey);
 
             var info = new OAuthWebQueryInfo
             {
@@ -229,7 +232,7 @@ namespace RestSharp.Authenticators.OAuth
 
             var signatureBase = OAuthTools.ConcatenateRequestElements(method, url, parameters);
             var signature = OAuthTools.GetSignature(SignatureMethod, SignatureTreatment, signatureBase,
-                ConsumerSecret, TokenSecret);
+                ConsumerSecret, TokenSecret, SigningKey);
 
             var info = new OAuthWebQueryInfo
             {
